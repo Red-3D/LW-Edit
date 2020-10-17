@@ -1,7 +1,7 @@
 #include<string>
 #include<iostream>
 
-#include"resource.h"
+#include"resource.hpp"
 #include<Windows.h>
 
 //yes, make me look awesome
