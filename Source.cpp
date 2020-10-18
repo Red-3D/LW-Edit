@@ -1,5 +1,7 @@
 #include<string>
+#include<stdio.h>
 #include<iostream>
+#include"Recources/File_reader.hpp"
 
 #include"Recources/resource.hpp"
 #include<Windows.h>
@@ -12,7 +14,7 @@ HFONT defaultFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 #define setFont(hWnd) SendMessage(hWnd, WM_SETFONT, WPARAM(defaultFont), TRUE);
 
 //imagine having to look through everything else
-#define version L"0.1a"
+#define version L"0.2a"
 
 #define size_main_x  500
 #define size_main_y  500
@@ -22,25 +24,27 @@ HFONT defaultFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 #define M_Exit 1
 #define M_FileMenu_World 201
 #define M_FileMenu_Board 202
-#define M_Help_GH    301
-#define M_Help_About 302
+#define M_Help_help  301
+#define M_Help_GH    302
+#define M_Help_Lw    303
+#define M_Help_About 304
 #define M_Help_About_Exit 401
 
 //gonna define them later
 LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK AboutProcedure(HWND, UINT, WPARAM, LPARAM);
-void about(HINSTANCE hInst);
 void AddMenus(HWND);
 void AddControls(HWND);
 void PopulateAbout(HWND);
-void File_dialogue(HWND hWnd, LPCWSTR filter);
+std::wstring File_dialogue(HWND hWnd, LPCWSTR filter);
 
 //need to remember those
 HWND hMain;
 HMENU hMenu;
 
 //Register windows
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow) {
+int WINAPI WinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInst, _In_ LPSTR args, _In_ int ncmdshow) {
+
 
 	//main window
 	WNDCLASSW wmain = {0};
@@ -68,6 +72,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 
 	//create the main window
 	hMain = CreateWindowW(L"LwEdit",L"LwEdit",WS_OVERLAPPEDWINDOW | WS_VISIBLE, (GetSystemMetrics(SM_CXSCREEN)-size_main_x)/2, (GetSystemMetrics(SM_CYSCREEN)-size_main_y)/2,size_main_x,size_main_y,NULL,NULL,NULL,NULL);
+	
+		//------- debug console --------//
+		#pragma warning(disable : 4996)	//
+		AllocConsole();					//
+		freopen("conin$", "r", stdin);	//
+		freopen("conout$", "w", stdout);//
+		freopen("conout$", "w", stderr);//
+		//------------------------------//
 
 	//handle user input
 	MSG msg = {0};
@@ -75,6 +87,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+	FreeConsole();
 	return 0;
 }
 
@@ -84,11 +97,24 @@ LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg) {
 	case WM_COMMAND:
 		switch (wp) {
-		case M_FileMenu_World:
-			File_dialogue(hWnd, L"meta.succ\0meta.succ\0All Files\0*.*\0");
+		case M_FileMenu_World:{
+			std::wstring file = File_dialogue(hWnd, L"meta.succ\0meta.succ\0All Files\0*.*\0");
+			MessageBox(hWnd, file.c_str(), L"World:", MB_OK);
 			break;
-		case M_FileMenu_Board:
-			File_dialogue(hWnd, L"data.tung\0data.tung\0All Files\0*.*\0");
+		}
+		case M_FileMenu_Board:{
+			std::wstring file = File_dialogue(hWnd, L"data.tung\0data.tung\0All Files\0*.*\0");
+			readtung(file);
+			break;
+		}
+		case M_Help_help:
+			MessageBox(hWnd, L"", L"Help", MB_OK);
+			break;
+		case M_Help_GH:
+			ShellExecute(NULL, L"open", L"https://github.com/Red-3D/LW-Edit", NULL, NULL, SW_SHOWNORMAL);
+			break;
+		case M_Help_Lw:
+			ShellExecute(NULL, L"open", L"https://logicworld.net/", NULL, NULL, SW_SHOWNORMAL);
 			break;
 		case M_Help_About:
 			CreateWindowW(L"about", L"About LwEdit", WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME | WS_VISIBLE, (GetSystemMetrics(SM_CXSCREEN)-size_about_x)/2, (GetSystemMetrics(SM_CYSCREEN)-size_about_y)/2, size_about_x, size_about_y, hWnd, NULL, NULL, NULL);
@@ -160,7 +186,9 @@ void AddMenus(HWND hWnd) {
 	AppendMenu(hFileMenu, MF_STRING, M_Exit, L"Exit");
 
 	//help menu
+	AppendMenu(hHelpMenu, MF_STRING, M_Help_help, L"Help");
 	AppendMenu(hHelpMenu, MF_STRING, M_Help_GH, L"Github");
+	AppendMenu(hHelpMenu, MF_STRING, M_Help_Lw, L"Logic World");
 	AppendMenu(hHelpMenu, MF_SEPARATOR, NULL, NULL);
 	AppendMenu(hHelpMenu, MF_STRING, M_Help_About, L"About");
 
@@ -175,7 +203,6 @@ void AddMenus(HWND hWnd) {
 void AddControls(HWND hWnd) {
 
 	HWND tmp;
-
 	tmp = CreateWindowW(L"Static",L"Hello World",WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER, 200, 100, 100, 50, hWnd, NULL, NULL, NULL);
 	setFont(tmp);
 	tmp = CreateWindowW(L"Edit", L"...", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL, 200, 175, 200, 50, hWnd, NULL, NULL, NULL);
@@ -199,12 +226,12 @@ void PopulateAbout(HWND hWnd) {
 }
 
 //open file dialogue
-void File_dialogue(HWND hWnd, LPCWSTR filter) {
-	
+std::wstring File_dialogue(HWND hWnd, LPCWSTR filter) {
+
 	OPENFILENAME ofn;
 	TCHAR szFile[260] = {0};
 
-	// Initialize OPENFILENAME
+	//Initialize OPENFILENAME
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hWnd;
@@ -217,9 +244,6 @@ void File_dialogue(HWND hWnd, LPCWSTR filter) {
 	ofn.lpstrInitialDir = NULL;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-	if (GetOpenFileName(&ofn) == TRUE)
-	{
-		MessageBox(hWnd, ofn.lpstrFile, NULL, MB_OK);
-		//TODO: return ofn.lpstrFile
-	}
+	GetOpenFileName(&ofn);
+	return ofn.lpstrFile;
 }
