@@ -27,15 +27,13 @@ struct componentid
 #pragma pack(push, 1)
 struct wire
 {
-	//first peg address
 	bool inoutput_one;
 	uint32_t address_one;
-	int32_t index_one;
+	bool mystery_one;
 
-	//second peg address
 	bool inoutput_two;
 	uint32_t address_two;
-	int32_t index_two;
+	bool mystery_two;
 
 	float rotation;
 };
@@ -56,8 +54,6 @@ void readtung(std::wstring ipath) {
 	tungfile file;
 	filestream.fread(file, sizeof(file));
 	std::wcout << "Header: " << file.Header << "\nSave Format Version:" << (unsigned int)file.SaveFormatVersion << "\nGame Version: " << file.GameVersion[0] << ' ' << file.GameVersion[1] << ' ' << file.GameVersion[2] << ' ' << file.GameVersion[3] << "\ncomponents: " << file.components << "\nwires:" << file.wires << "\nComponent ID's: " << file.componentIDs << '\n';
-
-	std::cout << "\n\nsize: " << sizeof(wire);
 
 	system("pause");
 
@@ -89,13 +85,11 @@ void readtung(std::wstring ipath) {
 	int32_t outputs;
 	int32_t length;
 
-	std::cout << "pos: " << filestream.tellg();
-	system("pause");
-
 	for (int32_t i = 0; i < file.components; i++) {
 
+		std::cout << "\n\ni: " << i;
 		filestream.fread(address, 4);
-		std::cout << "\n\nAdress: " << address;
+		std::cout << "\nAdress: " << address;
 
 		filestream.fread(parent_address, 4);
 		std::cout << "\nParent Adress: " << parent_address;
@@ -141,20 +135,13 @@ void readtung(std::wstring ipath) {
 		delete[] output_pegs;
 	}
 
-	volatile wire w_tmp;
 
-	for (uint32_t i = 0; i < file.wires; i++) {
-		
-		/*if (5911 - filestream.tellg() <= 16) {
-			goto end;
-		}*/
+	wire w_tmp;
+	for (int32_t i = 0; i < file.wires; i++) {
 
-		filestream.fread(w_tmp, sizeof(w_tmp));
-		
-		std::cout << "\n ID: " << i << " wire: " << w_tmp.address_one << ' ' << w_tmp.address_two << " pos: " << filestream.tellg();
+		filestream.fread(w_tmp, sizeof(wire));
+		std::cout << "\nID: " << i << " 1: " << w_tmp.inoutput_one << '_' << w_tmp.address_one << " ? " << w_tmp.mystery_one << " 2: " << w_tmp.inoutput_two << '_' << w_tmp.address_two << " ? " << w_tmp.mystery_two;
 	}
-
-	end:
 
 	char footer[16];
 	filestream.fread(footer, 16);

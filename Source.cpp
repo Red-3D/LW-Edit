@@ -73,13 +73,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInst, _In_ LPST
 	//create the main window
 	hMain = CreateWindowW(L"LwEdit",L"LwEdit",WS_OVERLAPPEDWINDOW | WS_VISIBLE, (GetSystemMetrics(SM_CXSCREEN)-size_main_x)/2, (GetSystemMetrics(SM_CYSCREEN)-size_main_y)/2,size_main_x,size_main_y,NULL,NULL,NULL,NULL);
 	
-		//------- debug console --------//
-		#pragma warning(disable : 4996)	//
-		AllocConsole();					//
-		freopen("conin$", "r", stdin);	//
-		freopen("conout$", "w", stdout);//
-		freopen("conout$", "w", stderr);//
-		//------------------------------//
+		//---------- debug console ---------//
+		#pragma warning(disable : 4996)		//
+		AllocConsole();						//
+		FILE* lol;							//
+		lol = freopen("conin$", "r",stdin); //
+		lol = freopen("conout$","w",stdout);//
+		lol = freopen("conout$","w",stderr);//
+		//----------------------------------//
 
 	//handle user input
 	MSG msg = {0};
