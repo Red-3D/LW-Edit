@@ -1,0 +1,207 @@
+<html>
+
+	<link href='https://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet'>
+	<style type="text/css">
+		html {
+		height: 100%;
+		font-family: 'Inconsolata';font-size: 18px;
+		color: #C0C0C0; 
+		}
+		
+		body {
+			background-attachment: fixed;
+				background-image: radial-gradient(#181818, #080808);
+		}
+		
+		div {
+			background: #FFFFFF20;
+			border-radius:8px;
+		}
+		
+		hr {
+			background: #808080;
+			height: 2px;
+			margin: 0px;
+			border-width: 0px;
+		}
+		
+		br {
+			line-height:8px;
+		}
+		
+		h1 {
+			color: #3787bd;
+			margin: 1%;
+			padding: 0;
+		}
+		
+		a {
+			color: inherit;
+			text-decoration: none;
+		}
+		
+		p {
+			margin: 10px;
+			padding: 0;
+		}
+		
+		pre {
+			margin: 0px;
+			padding: 0;
+		}
+	</style>
+	
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Tung File Format</title>
+	</head>
+	
+	<body>
+		<hr style="background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(128, 128, 128, 128),rgba(0, 0, 0, 0)); height: 2px; margin: 0px; border-width: 0px;">
+		<center><h1>Tung file format v4 | Reds Edition</h1></center>
+		<hr style="background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(128, 128, 128, 128),rgba(0, 0, 0, 0)); height: 2px; margin: 0px; border-width: 0px;">
+		
+		<center><p>.tung files are binary files that store Logic Worlds Components. They can store both worlds and boards,
+		In the case of boards is the first component in the file assumed to be the parent of everything.</p></center>
+		
+		<div>
+			<b><p style="font-size:28px;">Structure:</p></b>
+			<hr>
+			<ul>
+			<li><pre>Header                |16 bytes</pre></li>
+			<li><pre>Save Format version   |1  byte </pre></li>
+			<li><pre>Gave Version          |16 bytes</pre></li>
+			<li><pre>Component counts      |8  bytes</pre></li>
+			<li><pre>Component ID Map      |4+ bytes</pre></li>
+			<li><pre>All components        |0+ bytes</pre></li>
+			<li><pre>All wires             |0+ bytes</pre></li>
+			<li><pre>Footer                |16 bytes</pre></li>
+			</ul>
+			<br>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Header</p></b>
+			<hr>
+			<p>The first 16 bytes of the file are &ldquo;4C-6F-67-69-63-20-57-6F-72-6C-64-20-73-61-76-65&rdquo;<br>
+			UTF-8 for: &ldquo;Logic World save&rdquo;</p>
+			<br>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Save Format Version</p></b>
+			<hr><br>
+			<pre>
+	uint8  | currently 04
+			</pre>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Game Version</p></b>
+			<hr><br>
+			<pre>
+	int32 | Game Version
+	int32 | Game Version
+	int32 | Game Version
+	int32 | Game Version
+			</pre>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Counts</p></b>
+			<hr><br>
+			<pre>
+	int32 | Number of Components
+	int32 | Number of Wires
+			</pre>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Component ID Map</p></b>
+			<hr><br>
+			<pre>
+	uint32 | number of component ids
+			</pre>
+			<div>
+				<b><p stlye="font-size:24px;">for every component:</p></b>
+				<ul>
+				<li style="position:relative; left: 50px;"><pre>uint16 | numeric id</pre></li>
+				<li style="position:relative; left: 50px"><pre>uint32 | length of UTF-8 String</pre></li>
+				<li style="position:relative; left: 50px"><pre>string | text id</pre></li>
+				</ul>
+				<br>
+			</div>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Components</p></b>
+			<hr>
+			<p>each component is stored one after another in this format:</p>
+			
+			<pre>
+	int32   | component address
+	int32   | parent address
+	int16   | numeric id (component type)
+		    
+	int32   | x location
+	int32   | y location
+	int32   | Z location
+	
+	float32 | real of rotation quaternion
+	float32 | i of rotation quaternion
+	float32 | j of rotation quaternion
+	float32 | k of rotation quaternion
+	
+	int32   | number of inputs
+	bool8[] | is input exclusive
+		    
+	int32   | number of outputs
+	bool8[] | is output on
+		    
+	int32   | bytes in following byte array
+	int8[]  | array for custom data
+			</pre>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">wires</p></b>
+			<hr><br>
+			<pre>
+	bool8   | input or output
+	uint32  | address one
+	int8    | peg index
+		    
+	bool8   | input or output
+	uint32  | address two
+	int8    | peg index
+		    
+	float32 | rotation
+			</pre>
+		</div>
+		
+		<br>
+		
+		<div>
+			<b><p style="font-size:28px;">Footer</p></b>
+			<hr>
+			<p>The Last 16 bytes of the file are &ldquo;72-65-64-73-74-6F-6E-65-20-73-75-78-20-6C-6F-6C&rdquo;<br>
+			UTF-8 for: &ldquo;redstone sux lol&rdquo;</p>
+			<br>
+		</div>
+	</body>
+</html>
