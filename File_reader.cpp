@@ -1,155 +1,155 @@
 #include"Recources/File_reader.hpp"
 
-#define fread(x,size) read((char*)&x,size)
+#define FREAD(x,size) read((char*)&x,size)
 
 //.tung
-#pragma pack(push,1)
-struct tungfile
-{	
-	char Header[16];
 
-	uint8_t SaveFormatVersion;
-	int32_t GameVersion[4];
-	int32_t components;
-	int32_t wires;
-	uint32_t componentIDs;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct componentid
-{
-	uint16_t id;
-	int32_t length;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct wire
-{
-	bool inoutput_one;
-	uint32_t address_one;
-	bool mystery_one;
-
-	bool inoutput_two;
-	uint32_t address_two;
-	bool mystery_two;
-
-	float rotation;
-};
-#pragma pack(pop)
-
-void readtung(std::wstring ipath) {
+tungfile readtung(std::wstring ipath) {
 
 	std::ifstream filestream;
 	filestream.open(ipath, std::ios::binary);
 
+	tungfile file;
+
+	//can we open it?
 	if (!filestream.is_open()) {
 		MessageBox(NULL, L"could not open file", NULL, MB_ICONWARNING);
 		filestream.close();
-		return;
-	}
-
-	//Header | Save Format Version | Game Version | Number of components and wires | number of ids
-	tungfile file;
-	filestream.fread(file, sizeof(file));
-	std::wcout << "Header: " << file.Header << "\nSave Format Version:" << (unsigned int)file.SaveFormatVersion << "\nGame Version: " << file.GameVersion[0] << ' ' << file.GameVersion[1] << ' ' << file.GameVersion[2] << ' ' << file.GameVersion[3] << "\ncomponents: " << file.components << "\nwires:" << file.wires << "\nComponent ID's: " << file.componentIDs << '\n';
-
-	system("pause");
-
-	//Component ID map
-	componentid id;
-	char trash;
-	std::string* names = new std::string[file.componentIDs];
-
-	for (unsigned int i = 0; i < file.componentIDs; i++) {
-
-		filestream.fread(id, sizeof(id));
-		std::cout << "\n\nID: " << id.id << "\nlength: " << id.length << "\nUTF-8 ID: |";
-//TODO optimize by reading the whole name at once
-		for (int j = 0; j < id.length; j++) {
-			filestream.fread(trash, 1);
-			std::cout << trash;
-			names[i] += trash;
-		}
-		std::cout << '|';
+		return file;
 	}
 	
-	uint32_t address;
-	uint32_t parent_address;
-	int16_t type;
-	float location[3];
-	float rotation[4];
+	char buffer[16];
+	//header
+	filestream.FREAD(buffer, 16);
+	memcpy(&file.header, buffer, 16);
+	//save format version
+	filestream.FREAD(buffer, 1);
+	memcpy(&file.SaveFormatVersion, buffer, 1);
+	
+	//game version
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.GameVersion[0], buffer, 4);
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.GameVersion[1], buffer, 4);
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.GameVersion[2], buffer, 4);
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.GameVersion[3], buffer, 4);
 
-	int32_t inputs;
-	int32_t outputs;
-	int32_t length;
+	//component and wire count
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.count_components, buffer, 4);
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.count_wires, buffer, 4);
 
-	for (int32_t i = 0; i < file.components; i++) {
+	//how many ids are in the file
+	filestream.FREAD(buffer, 4);
+	memcpy(&file.componentIDs, buffer, 4);
 
-		std::cout << "\n\ni: " << i;
-		filestream.fread(address, 4);
-		std::cout << "\nAdress: " << address;
+	file.ID_Map = std::make_unique<componentid[]>(file.componentIDs);
+	for (uint32_t i = 0; i < file.componentIDs; i++) {
+		
+		filestream.FREAD(buffer, 2);
+		memcpy(&file.ID_Map[i].id, buffer, 2);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.ID_Map[i].length, buffer, 4);
+		
+		char* B_two = new char[(file.ID_Map[i].length) + 1];
+		filestream.read(B_two, file.ID_Map[i].length);
+		
+		file.ID_Map[i].text_id = std::make_unique<char[]>(file.ID_Map[i].length);
+		for (uint32_t j = 0; j < file.ID_Map[i].length; j++) {
+			file.ID_Map[i].text_id[j] = B_two[j];
+		}
+		
+		delete[] B_two;
+	}
 
-		filestream.fread(parent_address, 4);
-		std::cout << "\nParent Adress: " << parent_address;
 
-		filestream.fread(type, 2);
-		std::cout << "\ntype: " << (uint32_t)type << '|' << names[type];
+	file.components = std::make_unique<component[]>(file.count_components);
+	for (int i = 0; i < file.count_components; i++) {
 
-		filestream.fread(location, 3 * sizeof(float));
-		std::cout << "\nlocation: |" << location[0] << '|' << location[1] << '|' << location[2] << '|';
+		filestream.FREAD(buffer,4);
+		memcpy(&file.components[i].address, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].parent_address, buffer, 4);
+		filestream.FREAD(buffer, 2);
+		memcpy(&file.components[i].id, buffer, 2);
 
-		filestream.fread(rotation, 4 * sizeof(float));
-		std::cout << "\nrotation: |" << rotation[0] << '|' << rotation[1] << '|' << rotation[2] << '|' << rotation[3] << '|';
+		//location
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].loc_x, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].loc_y, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].loc_z, buffer, 4);
 
-		filestream.fread(inputs, 4);
-		std::cout << "\ninputs: " << inputs;
+		//rotation
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].rot_r, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].rot_i, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].rot_j, buffer, 4);
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].rot_k, buffer, 4);
+		
+		//input array
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].inputs, buffer, 4);
+		
+		file.components[i].in_arr = std::make_unique<uint8_t[]>(file.components[i].inputs);
+		char* B_two = new char[(file.components[i].inputs) + 1];
+		filestream.read(B_two, file.components[i].inputs);
+		for (int j = 0; j < file.components[i].inputs; j++) {
+			file.components[i].in_arr[j] = B_two[j];
+		}
+		delete[] B_two;
 
-		bool* input_pegs = new bool[inputs];
-		filestream.read((char*)input_pegs, inputs);
+		//output array
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].outputs, buffer, 4);
 
-		filestream.fread(outputs, 4);
-		std::cout << "\noutputs: " << outputs;
+		file.components[i].out_arr = std::make_unique<uint8_t[]>(file.components[i].outputs);
+		char* B_three = new char[(file.components[i].outputs) + 1];
+		filestream.read(B_three, file.components[i].outputs);
 
-		bool* output_pegs = new bool[outputs];
-		filestream.read((char*)output_pegs, outputs);
-
-		filestream.fread(length, 4);
-		std::cout << "\nbyte array length: " << length;
-
-		if (length >= 1) {
-			int8_t* bytearray = new int8_t[length];
-			filestream.read((char*)bytearray, length);
-
-			std::cout << "\nData: ";
-
-			for (int32_t i = 0; i < length; i++) {
-				std::cout << (int)bytearray[i] << ' ';
-			}
-
-			delete[] bytearray;
+		for (int j = 0; j < file.components[i].outputs; j++) {
+			file.components[i].out_arr[j] = B_three[j];
 		}
 
-		delete[] input_pegs;
-		delete[] output_pegs;
+		delete[] B_three;
+
+		//byte array
+		filestream.FREAD(buffer, 4);
+		memcpy(&file.components[i].byte_arr_size, buffer, 4);
+
+		//if we need one
+		if (file.components[i].byte_arr_size >= 1) {
+			file.components[i].byte_arr = std::make_unique<uint8_t[]>(file.components[i].byte_arr_size);
+			char* B_four = new char[(file.components[i].byte_arr_size) + 1];
+			filestream.read(B_four, file.components[i].byte_arr_size);
+			for (int j = 0; j < file.components[i].byte_arr_size; j++) {
+				file.components[i].byte_arr[j] = B_four[j];
+			}
+			delete[] B_four;
+		}
 	}
 
-
-	wire w_tmp;
-	for (int32_t i = 0; i < file.wires; i++) {
-
-		filestream.fread(w_tmp, sizeof(wire));
-		std::cout << "\nID: " << i << " 1: " << w_tmp.inoutput_one << '_' << w_tmp.address_one << " ? " << w_tmp.mystery_one << " 2: " << w_tmp.inoutput_two << '_' << w_tmp.address_two << " ? " << w_tmp.mystery_two;
+	//wires
+	file.wires = std::make_unique<wire[]>(file.count_wires);
+	for (uint32_t i = 0; i < file.count_wires; i++) {
+		filestream.FREAD(buffer, 16);
+		memcpy(&file.wires[i], buffer, 16);
 	}
 
-	char footer[16];
-	filestream.fread(footer, 16);
-
-	std::cout << "\n\nfooter: ";
-	for (uint32_t i = 0; i < 16; i++) {
-		std::cout << footer[i];
-	}
+	//footer
+	filestream.FREAD(buffer, 16);
+	memcpy(&file.footer, buffer, 16);
 
 	filestream.close();
+	file.__Status__ = 1;
+	return file;
 }
+
+void writetung(tungfile file);
