@@ -179,28 +179,16 @@ void writetung(tungfile& file, std::wstring opath) {
 	
 	std::ofstream filestream;
 	filestream.open(opath, std::ios::binary);
+	if (!filestream.is_open()) {
+		std::wcout << L"\n\nERROR: could not open path: " << opath;
+		filestream.close();
+		return;
+	}
 
 	char buffer[16];
 
-	//idk, it works
-	buffer[0]  = 'L';
-	buffer[1]  = 'o';
-	buffer[2]  = 'g';
-	buffer[3]  = 'i';
-	buffer[4]  = 'c';
-	buffer[5]  = ' ';
-	buffer[6]  = 'W';
-	buffer[7]  = 'o';
-	buffer[8]  = 'r';
-	buffer[9]  = 'l';
-	buffer[10] = 'd';
-	buffer[11] = ' ';
-	buffer[12] = 's';
-	buffer[13] = 'a';
-	buffer[14] = 'v';
-	buffer[15] = 'e';
-
 	//header
+	memcpy(buffer, "Logic World save", 16);
 	filestream.FWRITE(buffer, 16);
 	
 	//save format version
@@ -266,24 +254,8 @@ void writetung(tungfile& file, std::wstring opath) {
 		filestream.FWRITE(file.wires[i], sizeof(wire));
 	}
 
-	//idk, it works
-	buffer[0]  = 'r';
-	buffer[1]  = 'e';
-	buffer[2]  = 'd';
-	buffer[3]  = 's';
-	buffer[4]  = 't';
-	buffer[5]  = 'o';
-	buffer[6]  = 'n';
-	buffer[7]  = 'e';
-	buffer[8]  = ' ';
-	buffer[9]  = 's';
-	buffer[10] = 'u';
-	buffer[11] = 'x';
-	buffer[12] = ' ';
-	buffer[13] = 'l';
-	buffer[14] = 'o';
-	buffer[15] = 'l';
-
+	//footer
+	memcpy(buffer, "redstone sux lol", 16);
 	filestream.FWRITE(buffer, 16);
 
 	filestream.close();
