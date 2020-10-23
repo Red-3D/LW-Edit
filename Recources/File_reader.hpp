@@ -1,13 +1,20 @@
 #pragma once
-#ifndef _IOSTREAM_
-#include<iostream>
+#pragma warning(disable : 4996)
+
+#ifndef _STRING_
+#include<string>
 #endif
 #ifndef _FSTREAM_
 #include<fstream>
 #endif
-#ifndef _WINDOWS_
-#include<windows.h>
-#endif
+
+//Custom File Reader defs
+#define CFR_SUCCESS             100
+#define CFR_ERR_WHAT            1
+#define CFR_ERR_CANT_OPEN       2
+#define CFR_ERR_INVALID_HEADER  3
+#define CFR_ERR_INVALID_VERSION 4
+#define CFR_ERR_INVALID_FOOTER  5
 
 //shut, ima initialize it later
 #pragma warning(disable : 26495)
@@ -56,9 +63,7 @@ struct wire {
 };
 
 struct tungfile {
-	int8_t __Status__ = 0;					//will set to 1 if the file was read successfully
-	char header[16];
-	uint8_t SaveFormatVersion;
+	int8_t __Status__ = CFR_ERR_WHAT;
 	int32_t GameVersion[4];
 	int32_t count_components;
 	int32_t count_wires;
@@ -66,8 +71,9 @@ struct tungfile {
 	std::unique_ptr<componentid[]> ID_Map;
 	std::unique_ptr<component[]> components;
 	std::unique_ptr<wire[]> wires;
-	char footer[16];
 };
 #pragma pack(pop)
 
+
 tungfile readtung(std::wstring path);
+void writetung(tungfile& file, std::wstring opath);
