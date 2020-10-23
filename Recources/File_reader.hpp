@@ -4,6 +4,9 @@
 #ifndef _STRING_
 #include<string>
 #endif
+#ifndef _IOSTREAM_
+#include<iostream>
+#endif
 #ifndef _FSTREAM_
 #include<fstream>
 #endif
