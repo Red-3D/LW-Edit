@@ -10,6 +10,8 @@
 #ifndef _FSTREAM_
 #include<fstream>
 #endif
+#include<filesystem>
+#include<algorithm>
 
 //Custom File Reader defs
 #define CFR_SUCCESS             100
@@ -28,7 +30,6 @@ struct componentid {
 	uint32_t length;
 	std::unique_ptr<char[]> text_id;
 };
-
 struct component {
 	int32_t address;
 	int32_t parent_address;
@@ -52,7 +53,6 @@ struct component {
 	int32_t byte_arr_size;
 	std::unique_ptr<uint8_t[]> byte_arr;
 };
-
 struct wire {
 	int8_t inoutput_one;
 	uint32_t address_one;
@@ -64,7 +64,6 @@ struct wire {
 
 	float rotation;
 };
-
 struct tungfile {
 	int8_t __Status__ = CFR_ERR_WHAT;
 	int32_t GameVersion[4];
@@ -77,6 +76,25 @@ struct tungfile {
 };
 #pragma pack(pop)
 
+struct player {
+	std::wstring id;
+	float position[3] = {};
+	float rotation[2] = {};
+	float scale = 1;
+	bool flying = false;
+};
+struct lw_world {
+	uint8_t __Status__;
+	std::string Title;
+	std::string Description;
+	std::string Tags;
+	float spawn[3] = {0};
+	uint32_t player_amount = 0;
+	std::unique_ptr<player[]> players;
+
+};
 
 tungfile readtung(std::wstring path);
 void writetung(tungfile& file, std::wstring opath);
+
+lw_world readworld(std::wstring ipath);
