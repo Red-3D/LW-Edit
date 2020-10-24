@@ -3,7 +3,7 @@
 #define FREAD(x,size)   read((char*)&x, size)
 #define FWRITE(x, size) write((char*)&x, size)
 
-//.tung
+//tiny funcs
 bool tung_buffer_verify(char buffer[], size_t size, std::string str) {
 	for (int i = 0; i < size; i++) {
 		if (buffer[i] != str[i]) {
@@ -12,13 +12,59 @@ bool tung_buffer_verify(char buffer[], size_t size, std::string str) {
 	}
 	return 0;
 }
+void remove_comments(std::string& string) {
+	size_t pos = string.find_first_of('#');
+	while (pos != std::string::npos) {
+		if (string[pos - 1] != '\\') {
+			string.erase(pos, string.length());
+			goto escape;
+		}
+		pos = string.find_first_of('#', pos + 1);
+	}
+escape:
+	//remove escape for # (well add them when writing to file again)
+	string.erase(std::remove(string.begin(), string.end(), '\\'), string.end());
+	return;
+}
+bool get_val(std::string& string, std::string var_name) {
+	size_t pos = 0;
+	size_t pos2 = 0;
+	//match variable name
+	while (pos2 < var_name.length()) {
+		if (string[pos] != ' ') {
+			if (string[pos] != var_name[pos2]) {
+				return 0;
+			}
+			pos2++;
+		}
+		pos++;
+	}
+	//try to get to the right position
+	while (pos < string.length()) {
+			pos++;
+			while (pos < string.length()) {
+				//find start of value
+				if (string[pos] != ' ') {
+					string.erase(0, pos);
+					return 1;
+				}
+				pos++;
+			}
+			// if we got here the variable must be empty
+			string = "";
+		}
+	return 1;
+}
+bool read_bool(std::string& string) {
+	if (string == "true") return 1;
+	return 0;
+}
 
 tungfile readtung(std::wstring ipath) {
 
 	std::ifstream filestream;
-	filestream.open(ipath, std::ios::binary);
-
 	tungfile file;
+	filestream.open(ipath, std::ios::binary);
 
 	//can we open it?
 	if (!filestream.is_open()) {
@@ -67,7 +113,7 @@ tungfile readtung(std::wstring ipath) {
 
 	file.ID_Map = std::make_unique<componentid[]>(file.componentIDs);
 	for (uint32_t i = 0; i < file.componentIDs; i++) {
-		
+
 		filestream.FREAD(buffer, 2);
 		memcpy(&file.ID_Map[i].id, buffer, 2);
 		filestream.FREAD(buffer, 4);
@@ -188,8 +234,7 @@ void writetung(tungfile& file, std::wstring opath) {
 	char buffer[16];
 
 	//header
-	memcpy(buffer, "Logic World save", 16);
-	filestream.FWRITE(buffer, 16);
+	filestream.FWRITE("Logic World save", 16);
 	
 	//save format version
 	buffer[0] = 4;
@@ -204,10 +249,10 @@ void writetung(tungfile& file, std::wstring opath) {
 	filestream.FWRITE(file.componentIDs, 4);
 	
 	//Component ID map
-	for (int i = 0; i < file.componentIDs; i++) {
+	for (uint32_t i = 0; i < file.componentIDs; i++) {
 		filestream.FWRITE(file.ID_Map[i].id, 2);
 		filestream.FWRITE(file.ID_Map[i].length, 4);
-		for (int j = 0; j < file.ID_Map[i].length; j++) {
+		for (uint32_t j = 0; j < file.ID_Map[i].length; j++) {
 			filestream.FWRITE(file.ID_Map[i].text_id[j], 1);
 		}
 	}
@@ -255,8 +300,247 @@ void writetung(tungfile& file, std::wstring opath) {
 	}
 
 	//footer
-	memcpy(buffer, "redstone sux lol", 16);
-	filestream.FWRITE(buffer, 16);
+	filestream.FWRITE("redstone sux lol", 16);
 
 	filestream.close();
 };
+
+//world (.succ)
+lw_world readworld(std::wstring ipath) {
+
+	std::wcout << "readworld: " << ipath << '\n';
+	std::wstring path;
+	std::string line;
+	lw_world world;
+	bool found = false;
+
+	//meta.succ
+	path = ipath + L"\\meta.succ";
+	if(std::filesystem::exists(path)) {
+		
+		std::ifstream file(path);
+		//Title
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "Title")) {
+				world.Title = line;
+				found = true;
+			}
+		}
+		
+		found = false;
+		file.seekg(std::ios::beg);
+
+		//Description
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "Description")) {
+				world.Description = line;
+				found = true;
+			}
+		}
+
+		found = false;
+		file.seekg(std::ios::beg);
+
+		//Tags position
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "Tags")) {
+				found = true;
+			}
+		}
+
+		found = false;
+
+		//actual tags
+		while ((!found) && (!file.eof())) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "-")) {
+				world.Tags += line + ":";
+			}
+			else {
+				found = true;
+			}
+
+		}
+
+		file.close();
+	}
+
+	//worldinfo.succ
+	path = ipath + L"\\worldinfo.succ";
+	if (std::filesystem::exists(path)) {
+		std::ifstream file(path);
+
+		found = false;
+
+		//worldspawn : x
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "x")) {
+				world.spawn[0] = std::stof(line);
+				found = true;
+			}
+		}
+
+		found = false;
+		file.seekg(std::ios::beg);
+
+		//worldspawn : y
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "y")) {
+				world.spawn[1] = std::stof(line);
+				found = true;
+			}
+		}
+
+		found = false;
+		file.seekg(std::ios::beg);
+
+		//worldspawn : z
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "z")) {
+				world.spawn[2] = std::stof(line);
+				found = true;
+			}
+		}
+
+		file.close();
+	}
+	
+	path = ipath + L"\\players\\";
+	
+	//players
+	if (std::filesystem::exists(path)) {
+
+		std::vector<std::wstring> paths;
+		std::vector<std::wstring> player_ids;
+
+		//iterate through all files in the player folder
+		for (auto& p : std::filesystem::directory_iterator(path)) {
+			paths.push_back(p.path());
+			player_ids.push_back(p.path().filename());
+		}
+
+		//initialize player variables
+		world.players = std::make_unique<player[]>(paths.size());
+		if (paths.size() >= 1) {
+			world.player_amount = paths.size();
+		}
+
+		//for every player
+		for (int i = 0; i < paths.size(); i++) {
+
+			//get the id out of the filename
+			player_ids[i].erase(0, player_ids[i].find('{') + 1);
+			player_ids[i].erase(player_ids[i].find('}'), player_ids[i].length());
+			world.players[i].id = player_ids[i];
+
+			std::ifstream file(paths[i]);
+			
+			found = false;
+
+			//pos : x
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "x")) {
+					world.players[i].position[0] = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//pos : y
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "y")) {
+					world.players[i].position[1] = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//pos : z
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "z")) {
+					world.players[i].position[2] = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//rot : h
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "HeadHorizontalRotation")) {
+					world.players[i].rotation[0] = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//rot: v
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "HeadVerticalRotation")) {
+					world.players[i].rotation[1] = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//scale
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "Scale")) {
+					world.players[i].scale = std::stof(line);
+					found = true;
+				}
+			}
+
+			found = false;
+			file.seekg(std::ios::beg);
+
+			//is flying
+			while (!found && !file.eof()) {
+				getline(file, line);
+				remove_comments(line);
+				if (get_val(line, "Flying")) {
+					world.players[i].flying = read_bool(line);
+					found = true;
+				}
+			}
+
+			file.close();
+		}
+	}
+	
+	return world;
+}
