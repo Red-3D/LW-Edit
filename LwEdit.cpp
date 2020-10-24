@@ -7,14 +7,13 @@ wxIMPLEMENT_APP(App);
 //statup
 bool App::OnInit() {
 
-	//----------- debug console ----------//
-	#pragma warning(disable : 4996)       //
-	AllocConsole();                       //
-	FILE* lol;                            //
-	lol = freopen("conin$", "r", stdin);  //
-	lol = freopen("conout$", "w", stdout);//
-	lol = freopen("conout$", "w", stderr);//
-	//------------------------------------//
+	//-------- debug console -------//
+	#pragma warning(disable : 4996) //
+	AllocConsole();                 //
+	freopen("conin$" , "r", stdin); //
+	freopen("conout$", "w", stdout);//
+	freopen("conout$", "w", stderr);//
+	//------------------------------//
 
 
 	MainWindow *m_frame1 = new MainWindow();
@@ -25,12 +24,18 @@ bool App::OnInit() {
 
 //populate main window
 MainWindow::MainWindow() : wxFrame(NULL, wxID_ANY, "LwEdit") {
+	
+	//file menu
 	wxMenu* menuFile = new wxMenu;
-	menuFile->Append(ID_FILE_World, "&Open World");
-	menuFile->Append(ID_FILE_Board, "&Open Board");
+	menuFile->Append(ID_FILE_World, "Open &World\tCtrl+W");
+	menuFile->Append(ID_FILE_Board, "Open &Board\tCtrl+B");
 	menuFile->AppendSeparator();
-	menuFile->Append(wxID_EXIT, "&Exit");
+	wxMenuItem* exit = new wxMenuItem(menuFile, wxID_EXIT);
+	exit->SetBitmap(wxArtProvider::GetBitmap("wxART_QUIT"));
+	exit->SetItemLabel("Exit");
+	menuFile->Append(exit);
 
+	//Help menu
 	wxMenu* menuHelp = new wxMenu;
 	menuHelp->Append(ID_HELP_HELP, "&Help");
 	menuHelp->Append(ID_HELP_GH, "&Github");
@@ -38,33 +43,54 @@ MainWindow::MainWindow() : wxFrame(NULL, wxID_ANY, "LwEdit") {
 	menuHelp->AppendSeparator();
 	menuHelp->Append(ID_HELP_ABOUT, "&About");
 
+	//menubar
 	wxMenuBar* menuBar = new wxMenuBar;
 	menuBar->Append(menuFile, "&File");
 	menuBar->Append(menuHelp, "&Help");
 	SetMenuBar(menuBar);
 
+	//bind File stuff
 	Bind(wxEVT_MENU, &MainWindow::OnOpen_World, this, ID_FILE_World);
 	Bind(wxEVT_MENU, &MainWindow::OnOpen_Board, this, ID_FILE_Board);
 
+	//bind help stuff
 	Bind(wxEVT_MENU, &MainWindow::OnHelp_Help, this, ID_HELP_HELP);
 	Bind(wxEVT_MENU, &MainWindow::OnHelp_GH, this, ID_HELP_GH);
 	Bind(wxEVT_MENU, &MainWindow::OnHelp_LW, this, ID_HELP_LW);
 	Bind(wxEVT_MENU, &MainWindow::OnHelp_About, this, ID_HELP_ABOUT);
 
+	//bind exit
 	Bind(wxEVT_MENU, &MainWindow::OnExit, this, wxID_EXIT);
 }
 
 //File events
 void MainWindow::OnOpen_World(wxCommandEvent& event) {
-	wxFileDialog get_path(this, ("open world"), "", "", "worldinfo.succ|worldinfo.succ", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	get_path.ShowModal();
-	wxMessageBox(get_path.GetPath(), "path");
+	wxDirDialog get_dir(this, ("open world"), "", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	get_dir.ShowModal();
+
+	if (get_dir.GetPath().ToStdString() != "") {
+		lw_world world = readworld(get_dir.GetPath().ToStdWstring());
+
+		std::cout << "\n\nWorld:";
+		std::cout << "\n - Title: " << world.Title;
+		std::cout << "\n - Description: " << world.Description;
+		std::cout << "\n - Tags: " << world.Tags;
+		std::cout << "\n\nWorldspawn: " << world.spawn[0] << ' ' << world.spawn[1] << ' ' << world.spawn[2];
+		
+		for (uint32_t i = 0; i < world.player_amount; i++) {
+			std::wcout << "\n\nID: " << world.players[i].id;
+			std::cout << "\nPos: " << world.players[i].position[0] << ' ' << world.players[i].position[1] << ' ' << world.players[i].position[2];
+			std::cout << "\nRot: " << world.players[i].rotation[0] << ' ' << world.players[i].rotation[1];
+			std::cout << "\nScale: " << world.players[i].scale;
+			std::cout << "\nFlying: " << std::boolalpha << world.players[i].flying;
+		}
+	}
 }
 
 void MainWindow::OnOpen_Board(wxCommandEvent& event) {
 	wxFileDialog get_path(this, ("open Board"), "", "", "data.tung|*.tung", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	get_path.ShowModal();
-	
+
 	//if we got a path
 	if (get_path.GetPath().ToStdString() != "") {
 		tungfile file = readtung(get_path.GetPath().ToStdWstring());
@@ -96,7 +122,7 @@ void MainWindow::OnOpen_Board(wxCommandEvent& event) {
 		std::cout << "Status: " << (int)file.__Status__ << '\n';
 		std::cout << "Game Version: " << file.GameVersion[0] << ' ' << file.GameVersion[1] << ' ' << file.GameVersion[2] << ' ' << file.GameVersion[3];
 
-		writetung(file, L"D:\\CPP\\C++ Projects\\LW-Edit\\World\\test.tung");
+		//writetung(file, L"D:\\CPP\\C++ Projects\\LW-Edit\\World\\test.tung");
 	}
 }
 
