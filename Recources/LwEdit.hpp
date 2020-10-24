@@ -5,7 +5,7 @@
 #include <wx/wx.h>
 #endif
 
-#define VERSION "0.5a"
+#define VERSION "0.6a"
 
 class App : public wxApp {
 public:
