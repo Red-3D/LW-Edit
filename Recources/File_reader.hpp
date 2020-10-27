@@ -10,8 +10,15 @@
 #ifndef _FSTREAM_
 #include<fstream>
 #endif
+#ifndef _FILESYSTEM_
 #include<filesystem>
+#endif
+#ifndef _ALGORITHM_
 #include<algorithm>
+#endif
+#ifndef _LW_Edit_Custom_Data_
+#include"custom_data.hpp"
+#endif
 
 //Custom File Reader defs
 #define CFR_SUCCESS             100
@@ -35,14 +42,8 @@ struct component {
 	int32_t parent_address;
 	int16_t id;
 
-	float loc_x;
-	float loc_y;
-	float loc_z;
-
-	float rot_r;
-	float rot_i;
-	float rot_j;
-	float rot_k;
+	Euler_Position loc;
+	Quaternion rot;
 
 	int32_t inputs;
 	std::unique_ptr<uint8_t[]> in_arr;
@@ -78,13 +79,16 @@ struct tungfile {
 
 struct player {
 	std::wstring id;
-	float position[3] = {};
-	float rotation[2] = {};
+
+	Euler_Position position;
+	Euler_Rotation rotation;
 	float scale = 1;
+
 	bool flying = false;
 };
 struct lw_world {
 	uint8_t __Status__;
+	std::string type;
 	std::string Title;
 	std::string Description;
 	std::string Tags;
@@ -98,3 +102,4 @@ tungfile readtung(std::wstring path);
 void writetung(tungfile& file, std::wstring opath);
 
 lw_world readworld(std::wstring ipath);
+void writeworld(lw_world& fike, std::wstring opath);

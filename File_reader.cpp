@@ -44,7 +44,7 @@ bool get_val(std::string& string, std::string var_name) {
 			pos++;
 			while (pos < string.length()) {
 				//find start of value
-				if (string[pos] != ' ') {
+				if ((string[pos] != ' ') && (string[pos] !=':') && (string[pos] != '-')) {
 					string.erase(0, pos);
 					return 1;
 				}
@@ -143,21 +143,21 @@ tungfile readtung(std::wstring ipath) {
 
 		//location
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].loc_x, buffer, 4);
+		memcpy(&file.components[i].loc.x, buffer, 4);
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].loc_y, buffer, 4);
+		memcpy(&file.components[i].loc.y, buffer, 4);
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].loc_z, buffer, 4);
+		memcpy(&file.components[i].loc.z, buffer, 4);
 
 		//rotation
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].rot_r, buffer, 4);
+		memcpy(&file.components[i].rot.w, buffer, 4);
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].rot_i, buffer, 4);
+		memcpy(&file.components[i].rot.x, buffer, 4);
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].rot_j, buffer, 4);
+		memcpy(&file.components[i].rot.y, buffer, 4);
 		filestream.FREAD(buffer, 4);
-		memcpy(&file.components[i].rot_k, buffer, 4);
+		memcpy(&file.components[i].rot.z, buffer, 4);
 		
 		//input array
 		filestream.FREAD(buffer, 4);
@@ -263,14 +263,14 @@ void writetung(tungfile& file, std::wstring opath) {
 		filestream.FWRITE(file.components[i].parent_address, 4);
 		filestream.FWRITE(file.components[i].id, 2);
 
-		filestream.FWRITE(file.components[i].loc_x, 4);
-		filestream.FWRITE(file.components[i].loc_y, 4);
-		filestream.FWRITE(file.components[i].loc_z, 4);
+		filestream.FWRITE(file.components[i].loc.x, 4);
+		filestream.FWRITE(file.components[i].loc.y, 4);
+		filestream.FWRITE(file.components[i].loc.z, 4);
 
-		filestream.FWRITE(file.components[i].rot_r, 4);
-		filestream.FWRITE(file.components[i].rot_i, 4);
-		filestream.FWRITE(file.components[i].rot_j, 4);
-		filestream.FWRITE(file.components[i].rot_k, 4);
+		filestream.FWRITE(file.components[i].rot.w, 4);
+		filestream.FWRITE(file.components[i].rot.x, 4);
+		filestream.FWRITE(file.components[i].rot.y, 4);
+		filestream.FWRITE(file.components[i].rot.z, 4);
 
 		filestream.FWRITE(file.components[i].inputs, 4);
 		if (file.components[i].inputs >= 1) {
@@ -308,7 +308,6 @@ void writetung(tungfile& file, std::wstring opath) {
 //world (.succ)
 lw_world readworld(std::wstring ipath) {
 
-	std::wcout << "readworld: " << ipath << '\n';
 	std::wstring path;
 	std::string line;
 	lw_world world;
@@ -361,7 +360,7 @@ lw_world readworld(std::wstring ipath) {
 			getline(file, line);
 			remove_comments(line);
 			if (get_val(line, "-")) {
-				world.Tags += line + ":";
+				world.Tags += line + "\n";
 			}
 			else {
 				found = true;
@@ -378,6 +377,18 @@ lw_world readworld(std::wstring ipath) {
 		std::ifstream file(path);
 
 		found = false;
+
+		while (!found && !file.eof()) {
+			getline(file, line);
+			remove_comments(line);
+			if (get_val(line, "WorldTypeID")) {
+				world.type = line;
+				found = true;
+			}
+		}
+
+		found = false;
+		file.seekg(std::ios::beg);
 
 		//worldspawn : x
 		while (!found && !file.eof()) {
@@ -455,7 +466,7 @@ lw_world readworld(std::wstring ipath) {
 				getline(file, line);
 				remove_comments(line);
 				if (get_val(line, "x")) {
-					world.players[i].position[0] = std::stof(line);
+					world.players[i].position.x = std::stof(line);
 					found = true;
 				}
 			}
@@ -468,7 +479,7 @@ lw_world readworld(std::wstring ipath) {
 				getline(file, line);
 				remove_comments(line);
 				if (get_val(line, "y")) {
-					world.players[i].position[1] = std::stof(line);
+					world.players[i].position.y = std::stof(line);
 					found = true;
 				}
 			}
@@ -481,7 +492,7 @@ lw_world readworld(std::wstring ipath) {
 				getline(file, line);
 				remove_comments(line);
 				if (get_val(line, "z")) {
-					world.players[i].position[2] = std::stof(line);
+					world.players[i].position.z = std::stof(line);
 					found = true;
 				}
 			}
@@ -494,7 +505,7 @@ lw_world readworld(std::wstring ipath) {
 				getline(file, line);
 				remove_comments(line);
 				if (get_val(line, "HeadHorizontalRotation")) {
-					world.players[i].rotation[0] = std::stof(line);
+					world.players[i].rotation.z = std::stof(line);
 					found = true;
 				}
 			}
@@ -507,7 +518,7 @@ lw_world readworld(std::wstring ipath) {
 				getline(file, line);
 				remove_comments(line);
 				if (get_val(line, "HeadVerticalRotation")) {
-					world.players[i].rotation[1] = std::stof(line);
+					world.players[i].rotation.x = std::stof(line);
 					found = true;
 				}
 			}
@@ -537,10 +548,13 @@ lw_world readworld(std::wstring ipath) {
 					found = true;
 				}
 			}
-
 			file.close();
 		}
 	}
-	
 	return world;
+}
+
+void writeworld(lw_world& fike, std::wstring opath) {
+
+	return;
 }
